@@ -24,7 +24,6 @@ chan fin
 
 # main
 {
-  # timeout
   queue.timeout 1
 
   echo start main
