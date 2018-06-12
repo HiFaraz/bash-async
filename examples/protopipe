@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 
-source ./protopipe
-
+source "$(dirname "$0")/../protopipe"
 pipe_enable_aliases
 
 rm_pipe app &> /dev/null # just to be safe
 protopipe app
 
 function on_msg() {
-  echo "${@}"
+  echo "app:" "${@}"
 }
 
 function on_shutoff() {
@@ -17,30 +16,29 @@ function on_shutoff() {
 
 app... on_msg && on_shutoff &
 
+sleep 2 && app <<< timeout && shutoff app &
+
 app <<< hi
 
 {
   app <<< 1
   app <<< 2
+
   echo "3
   4" | app
+  
   app "5
   6"
+  
   echo "7
 8" >app
-  # app <<EOL
-  # 9
-  # 10
-  # 11
-  # EOL
-  sleep 4
-  shutoff app
-} &
-
-{
-  sleep 2
-  app <<< timeout!
-  shutoff app
+  
+  app <<EOL
+  9
+  10
+EOL
+  
+  sleep 4 && shutoff app
 } &
 
 wait

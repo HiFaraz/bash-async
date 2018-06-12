@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+source "$(dirname "$0")/../channel"
+
+chan queue
+chan fin
+
+# worker
+{
+  echo start worker
+
+  while true; do
+    queue.read msg
+    if queue.closed "$msg"; then
+      echo "queue was closed"
+      queue.destroy
+      fin.close
+      break
+    else
+      echo "new job: $msg"
+    fi
+  done
+} &
+
+# main
+{
+  # timeout
+  queue.timeout 1
+
+  echo start main
+  queue <<< first
+  queue <<< second
+  sleep 2
+  queue <<< third
+  queue.close
+  fin.wait
+  fin.destroy
+} &
+
+wait
+echo finished
+

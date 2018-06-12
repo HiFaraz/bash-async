@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-source ./pipe
+whereami="${1-.}"
+source "$PWD/$whereami/pipe"
+unset whereami
 
 # ./pipe only has primitives
 # ./protopipe has protocol:
@@ -33,5 +35,5 @@ function flow() {
 
 function shutoff() {
   local name="$1"
-  pump "$name" "$PIPE_SHUTOFF_MSG_"
+  "$name" <<< "$PIPE_SHUTOFF_MSG_"
 }

@@ -7,7 +7,6 @@ function pipe_open() {
 
 function assert_pipe() {
   local name="$1"
-
   pipe_open "$name" || {
     echo "$name is not a pipe"
     return 1
@@ -23,25 +22,32 @@ function drip() {
 function pipe() {
   local name="$1"
   mkfifo "$name"
-  alias $name="pump $name"
+  create_pump "$name"
+  
 }
 
-function pump() {
+function create_pump() {
   local name="$1"
-  assert_pipe "$name" &&
-   {
-    if [ $# -gt 1 ]; then
-      echo "${@:2}" | while read -r line; do echo "$line" >"$name"; done
-    else
-      while read -r line; do echo "$line" >"$name"; done
-    fi
-  }
+  eval "$(cat <<EOF
+    function $name() {
+      #echo in app custom func \$#
+      assert_pipe $name &&
+      {
+        if [ \$# -gt 0 ]; then
+          echo "\${@}" | while read -r line; do echo "\$line" >$name; done
+        else
+          while read -r line; do echo "\$line" >$name; done
+        fi
+      }
+    }
+EOF
+  )"
 }
 
 function rm_pipe() {
   local name="$1"
   assert_pipe "$name" && rm "$name"
-  unalias "$name" &> /dev/null
+  unset -f "$name" # destroy pump
 }
 
 function pipe_enable_aliases() {

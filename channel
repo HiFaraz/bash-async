@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+whereami="${1-.}"
+source "$PWD/$whereami/pipe"
+unset whereami
+
+CHANNEL_CLOSE_MSG_=::CLOSE_CHANNEL::
+
+chan_destroyed() {
+  ! pipe_open "$1"
+}
+
+close_chan() {
+  "$1" <<< "$CHANNEL_CLOSE_MSG_" &> /dev/null &
+}
+
+destroy_chan() {
+  rm_pipe "$1"
+}
+
+chan() {
+  destroy_chan "$1" &> /dev/null
+  wait
+  pipe "$1"
+  create_chan_funcs "$1"
+}
+
+create_chan_funcs() {
+  local name="$1"
+
+  # <chan>.close
+  eval "$(cat <<EOF
+    $name.close() {
+      close_chan $name
+    }
+EOF
+  )"
+
+  # <chan>.closed
+  eval "$(cat <<EOF
+    $name.closed() {
+      [ \"\$1\" = \"${CHANNEL_CLOSE_MSG_}\" ]
+    }
+EOF
+  )"
+
+  # <chan>.destroy
+  eval "$(cat <<EOF
+    $name.destroy() {
+      destroy_chan $name
+    }
+EOF
+  )"
+
+  # <chan>.next
+  eval "$(cat <<EOF
+    $name.next() {
+      drip $name
+    }
+EOF
+  )"
+
+  # <chan>.read
+  eval "$(cat <<EOF
+    $name.read() {
+      eval "\$1=\$(drip $name)"
+    }
+EOF
+  )"
+
+  # <chan>.timeout
+  eval "$(cat <<EOF
+    $name.timeout() {
+      sleep \$1 && $name.close &
+    }
+EOF
+  )"
+
+  # <chan>.wait
+  eval "$(cat <<EOF
+    $name.wait() {
+      echo waiting $name
+      drip $name &> /dev/null
+    }
+EOF
+  )"
+}
